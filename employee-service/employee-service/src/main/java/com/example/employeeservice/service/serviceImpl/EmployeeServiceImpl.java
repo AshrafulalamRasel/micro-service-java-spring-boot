@@ -1,7 +1,7 @@
 package com.example.employeeservice.service.serviceImpl;
 
-import com.example.employeeservice.apiClient.DepartmentClientService;
-import com.example.employeeservice.apiClient.clientdto.DepartmentDtoResponse;
+import com.example.employeeservice.apiClient.SkillClientService;
+import com.example.employeeservice.apiClient.clientdto.SkillResponse;
 import com.example.employeeservice.domain.Employee;
 import com.example.employeeservice.domain.repository.EmployeeRepository;
 import com.example.employeeservice.dto.request.EmployeeDtoRequest;
@@ -10,6 +10,7 @@ import com.example.employeeservice.service.EmployeeService;
 import com.example.employeeservice.utils.UuidUtils;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -25,36 +26,35 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     private final EmployeeRepository employeeRepository;
     public final UuidUtils uuidUtils;
-    public final DepartmentClientService departmentClientService;
+    public final SkillClientService skillClientService;
 
     @Override
     public ResponseEntity<Employee> createEmployee(EmployeeDtoRequest employeeDtoRequest) {
 
 
-        Optional<DepartmentDtoResponse> departmentDtoResponse =
-                departmentClientService.getAllDepartmentById(employeeDtoRequest.getDepartmentId());
+        Optional<SkillResponse> skillDtoResponse =
+                skillClientService.getAllSkillById(employeeDtoRequest.getSkillId());
 
-        if (!departmentDtoResponse.isPresent()){
+        if (!skillDtoResponse.isPresent()){
             throw new RuntimeException("Not Found Department");
         }
 
 
-        DepartmentDtoResponse dtoResponse = departmentDtoResponse.get();
+        SkillResponse dtoResponse = skillDtoResponse.get();
 
 
         Employee employee = new Employee();
 
         employee.setId(uuidUtils.getUuid());
-        employee.setEmployeeName(employeeDtoRequest.getEmployeeName());
-        employee.setEmployeeAge(employeeDtoRequest.getEmployeeAge());
-        employee.setDepartmentId(dtoResponse.getId());
+        BeanUtils.copyProperties(employeeDtoRequest,employee);
+        employee.setSkillId(dtoResponse.getId());
         employeeRepository.saveAndFlush(employee);
 
         return new ResponseEntity<>(employee, HttpStatus.CREATED);
     }
 
     @Override
-    public ResponseEntity<List<EmployeeDtoResponse>> getEmployeeList() {
+    public List<EmployeeDtoResponse> getEmployeeList() {
 
         List<EmployeeDtoResponse> employeeDtoResponseList = new ArrayList<>();
 
@@ -62,21 +62,49 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         employeeList.forEach(employeeListData->{
 
-            Optional<DepartmentDtoResponse> departmentDtoResponse =
-                    departmentClientService.getAllDepartmentById(employeeListData.getDepartmentId());
+            Optional<SkillResponse> skillDtoResponse =
+                    skillClientService.getAllSkillById(employeeListData.getSkillId());
 
 
             EmployeeDtoResponse employeeDtoResponse = new EmployeeDtoResponse();
             employeeDtoResponse.setId(employeeListData.getId());
             employeeDtoResponse.setEmployeeName(employeeListData.getEmployeeName());
             employeeDtoResponse.setEmployeeAge(employeeListData.getEmployeeAge());
-            employeeDtoResponse.setDepartmentList(departmentDtoResponse.get());
+            employeeDtoResponse.setDateOfBirth(employeeListData.getDateOfBirth());
+            employeeDtoResponse.setAddress(employeeListData.getAddress());
+            employeeDtoResponse.setSkillResponseList(skillDtoResponse.get());
             employeeDtoResponseList.add(employeeDtoResponse);
         });
 
 
 
 
-        return new ResponseEntity<>(employeeDtoResponseList,HttpStatus.OK);
+        return employeeDtoResponseList;
+    }
+
+
+
+    @Override
+    public EmployeeDtoResponse getAllEmployeeAndSkillById(String id) {
+
+        Optional<Employee> employeeOptional = employeeRepository.findById(id);
+
+        if (!employeeOptional.isPresent()) {
+            throw new RuntimeException("Not Found");
+        }
+
+        Employee employee = employeeOptional.get();
+        Optional<SkillResponse> skillDtoResponse =
+                skillClientService.getAllSkillById(employee.getSkillId());
+
+
+        return EmployeeDtoResponse.builder()
+                .id(employee.getId())
+                .employeeName(employee.getEmployeeName())
+                .employeeAge(employee.getEmployeeAge())
+                .address(employee.getAddress())
+                .dateOfBirth(employee.getDateOfBirth())
+                .skillName(skillDtoResponse.get().getSkillName())
+                .build();
     }
 }

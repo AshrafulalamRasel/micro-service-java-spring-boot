@@ -11,5 +11,6 @@ public interface EmployeeService {
 
     ResponseEntity<Employee> createEmployee(EmployeeDtoRequest employeeDtoRequest);
 
-    ResponseEntity<List<EmployeeDtoResponse>> getEmployeeList();
+    List<EmployeeDtoResponse> getEmployeeList();
+    EmployeeDtoResponse getAllEmployeeAndSkillById (String id);
 }
