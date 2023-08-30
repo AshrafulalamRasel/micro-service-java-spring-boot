@@ -1,4 +1,4 @@
-package com.example.employeeservice.apiClient.clientdto;
+package com.example.departmentservice.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
